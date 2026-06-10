@@ -1,0 +1,228 @@
+// Azure DevOps uses CSS custom properties for theming; we fall back to
+// light-theme values so the extension works even outside a themed context.
+
+.hub-page {
+  min-height: 100vh;
+  background-color: var(--background-color, #f3f2f1);
+}
+
+.hub-content {
+  padding: 16px 24px;
+  max-width: 1600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Settings card ──────────────────────────────────────────────────────────────
+
+.settings-card {
+  .scan-controls {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 8px 0;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &--action {
+      padding-bottom: 1px;
+    }
+  }
+
+  .control-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary-color, #605e5c);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .date-input {
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--palette-neutral-20, #8a8886);
+    border-radius: 2px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary-color, #323130);
+    background-color: var(--background-color, #fff);
+    cursor: pointer;
+    min-width: 160px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--communication-foreground, #0078d4);
+      box-shadow: 0 0 0 1px var(--communication-foreground, #0078d4);
+    }
+  }
+}
+
+// ── Error banner ───────────────────────────────────────────────────────────────
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background-color: #fed9cc;
+  border: 1px solid #d73b02;
+  border-radius: 2px;
+  color: #a4262c;
+  font-size: 14px;
+
+  .error-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}
+
+// ── Loading ────────────────────────────────────────────────────────────────────
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 56px 0;
+}
+
+// ── Results toolbar (sits above the table Card as a normal block sibling) ──────
+
+.results-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.results-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.results-headline {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary-color, #323130);
+  margin-bottom: 2px;
+}
+
+.results-stat {
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+
+  strong {
+    color: var(--text-primary-color, #323130);
+  }
+}
+
+.results-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selection-count {
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  white-space: nowrap;
+}
+
+// ── Results card (table only) ──────────────────────────────────────────────────
+
+.results-card {
+  .no-results {
+    padding: 32px 0;
+    text-align: center;
+    color: var(--text-secondary-color, #605e5c);
+    font-size: 14px;
+  }
+}
+
+// ── Select-all checkbox in column header ───────────────────────────────────────
+
+.header-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  height: 100%;
+}
+
+.lock-button {
+  background-color: var(--palette-red, #a80000) !important;
+  color: #fff !important;
+  border-color: var(--palette-red, #a80000) !important;
+
+  &:hover:not([disabled]) {
+    background-color: #8b0000 !important;
+    border-color: #8b0000 !important;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+  }
+}
+
+// ── Lock status cell ───────────────────────────────────────────────────────────
+
+.lock-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.lock-error {
+  font-size: 15px;
+  color: #a80000;
+  cursor: help;
+}
+
+// ── Table cell content ─────────────────────────────────────────────────────────
+
+.repo-link {
+  font-weight: 600;
+  color: var(--communication-foreground, #0078d4);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--communication-foreground-hover, #106ebe);
+  }
+}
+
+.branch-badge {
+  display: inline-block;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 11px;
+  background-color: var(--palette-neutral-6, #f0f0f0);
+  color: var(--text-primary-color, #323130);
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--palette-neutral-10, #e1dfdd);
+}
+
+.commit-count {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--communication-foreground, #0078d4);
+}
+
+.secondary-text {
+  font-size: 12px;
+  color: var(--text-secondary-color, #605e5c);
+}
+
+.commit-message {
+  font-size: 13px;
+  color: var(--text-primary-color, #323130);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
