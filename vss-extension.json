@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "id": "fulcrum-repo-activity",
-  "publisher": "CredibleBH",
+  "publisher": "my-publisher",
   "version": "1.0.0",
   "name": "Fulcrum Repository Activity",
   "description": "Lists repositories with commits to the default branch since a selected date.",

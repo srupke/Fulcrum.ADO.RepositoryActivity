@@ -14,13 +14,13 @@ export function notifyLoadSucceeded(): void {}
 export function notifyLoadFailed(_e: Error): void {}
 
 export function getHost() {
-  return { id: "mock-host", name: "CredibleBH", type: 1 };
+  return { id: "mock-host", name: "my-org", type: 1 };
 }
 
 export function getWebContext() {
   return {
-    account: { id: "mock", name: "CredibleBH" },
-    project: { id: "mock-project", name: "Credible" },
+    account: { id: "mock", name: "my-org" },
+    project: { id: "mock-project", name: "MyProject" },
     user: { id: "mock-user", name: "Dev User" },
   };
 }
