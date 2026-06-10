@@ -124,7 +124,36 @@
 .results-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.create-branch-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.branch-name-input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--palette-neutral-20, #8a8886);
+  border-radius: 2px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary-color, #323130);
+  background-color: var(--background-color, #fff);
+  min-width: 180px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--communication-foreground, #0078d4);
+    box-shadow: 0 0 0 1px var(--communication-foreground, #0078d4);
+  }
+
+  &::placeholder {
+    color: var(--text-secondary-color, #605e5c);
+  }
 }
 
 .selection-count {
@@ -169,7 +198,13 @@
   }
 }
 
-// ── Lock status cell ───────────────────────────────────────────────────────────
+// ── Status cell (lock + branch creation) ──────────────────────────────────────
+
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
 .lock-icon {
   font-size: 16px;
@@ -179,6 +214,19 @@
 .lock-error {
   font-size: 15px;
   color: #a80000;
+  cursor: help;
+}
+
+.branch-created-icon {
+  font-size: 15px;
+  font-weight: 700;
+  color: #107c10;
+  cursor: default;
+}
+
+.branch-exists-icon {
+  font-size: 15px;
+  color: var(--text-secondary-color, #605e5c);
   cursor: help;
 }
 

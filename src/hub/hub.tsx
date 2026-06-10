@@ -42,8 +42,9 @@ interface SortState {
 }
 
 type LockStatus = "locking" | "locked" | "error";
+type BranchCreateStatus = "checking" | "creating" | "created" | "exists" | "error";
 
-const DEFAULT_PROJECT = "Credible";
+const DEFAULT_PROJECT = "MyProject";
 const DEFAULT_DAYS = 14;
 
 function toInputDate(date: Date): string {
@@ -83,6 +84,11 @@ const Hub: React.FC = () => {
   const [lockStatuses, setLockStatuses] = useState<Record<string, LockStatus>>({});
   const [locking, setLocking] = useState(false);
 
+  // Branch creation state
+  const [newBranchName, setNewBranchName] = useState("");
+  const [branchCreating, setBranchCreating] = useState(false);
+  const [branchStatuses, setBranchStatuses] = useState<Record<string, BranchCreateStatus>>({});
+
   // Sort state
   const [sortState, setSortState] = useState<SortState | null>(null);
 
@@ -103,6 +109,7 @@ const Hub: React.FC = () => {
     setTotalRepos(0);
     setSelectedIds(new Set());
     setLockStatuses({});
+    setBranchStatuses({});
 
     try {
       const gitClient = getClient(GitRestClient);
@@ -276,14 +283,181 @@ const Hub: React.FC = () => {
     setLocking(false);
   }, [repoActivity, selectedIds, project]);
 
+  // ── Create Branch ─────────────────────────────────────────────────────────────
+
+  const handleCreateBranch = useCallback(async () => {
+    const trimmedBranch = newBranchName.trim();
+    if (!trimmedBranch || selectedIds.size === 0) return;
+
+    if (!/^[a-zA-Z0-9._\-/]+$/.test(trimmedBranch)) {
+      alert(
+        "Invalid branch name. Use letters, numbers, dots, hyphens, underscores, or slashes."
+      );
+      return;
+    }
+
+    const toProcess = repoActivity.filter((r) => selectedIds.has(r.repo.id!));
+    setBranchCreating(true);
+    const gitClient = getClient(GitRestClient);
+    const trimmedProject = project.trim();
+
+    // Check which selected repos already have this branch
+    const existsResults = await Promise.all(
+      toProcess.map(async (activity) => {
+        const id = activity.repo.id!;
+        setBranchStatuses((prev) => ({ ...prev, [id]: "checking" }));
+        try {
+          const refs = await gitClient.getRefs(
+            id,
+            trimmedProject,
+            `heads/${trimmedBranch}`
+          );
+          const exactMatch = (refs as any[]).some(
+            (r) => r.name === `refs/heads/${trimmedBranch}`
+          );
+          return { id, exists: exactMatch };
+        } catch {
+          return { id, exists: false };
+        }
+      })
+    );
+
+    const conflicts = existsResults.filter((r) => r.exists);
+    const toCreate = existsResults.filter((r) => !r.exists);
+
+    if (conflicts.length > 0) {
+      const conflictList = toProcess
+        .filter((a) => conflicts.some((c) => c.id === a.repo.id!))
+        .map((a) => `  • ${a.repo.name}`)
+        .join("\n");
+
+      if (toCreate.length === 0) {
+        alert(
+          `Branch "${trimmedBranch}" already exists in all selected repositories:\n\n${conflictList}`
+        );
+        conflicts.forEach(({ id }) =>
+          setBranchStatuses((prev) => ({ ...prev, [id]: "exists" }))
+        );
+        setBranchCreating(false);
+        return;
+      }
+
+      const createList = toProcess
+        .filter((a) => toCreate.some((c) => c.id === a.repo.id!))
+        .map((a) => `  • ${a.repo.name}`)
+        .join("\n");
+
+      const confirmed = window.confirm(
+        `Branch "${trimmedBranch}" already exists in ${conflicts.length} ${
+          conflicts.length === 1 ? "repository" : "repositories"
+        }:\n\n${conflictList}\n\n` +
+          `Create in the remaining ${toCreate.length} ${
+            toCreate.length === 1 ? "repository" : "repositories"
+          }?\n\n${createList}`
+      );
+
+      conflicts.forEach(({ id }) =>
+        setBranchStatuses((prev) => ({ ...prev, [id]: "exists" }))
+      );
+
+      if (!confirmed) {
+        toCreate.forEach(({ id }) =>
+          setBranchStatuses((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          })
+        );
+        setBranchCreating(false);
+        return;
+      }
+    }
+
+    // Create the branch from each repo's latest commit
+    await Promise.all(
+      toCreate.map(async ({ id }) => {
+        const activity = toProcess.find((a) => a.repo.id === id)!;
+        const headSha = activity.commits[0]?.commitId || "";
+        setBranchStatuses((prev) => ({ ...prev, [id]: "creating" }));
+        try {
+          await gitClient.updateRef(
+            {
+              name: `refs/heads/${trimmedBranch}`,
+              newObjectId: headSha,
+              oldObjectId: "0000000000000000000000000000000000000000",
+              repositoryId: id,
+            } as GitRefUpdate,
+            id,
+            `heads/${trimmedBranch}`,
+            trimmedProject
+          );
+          setBranchStatuses((prev) => ({ ...prev, [id]: "created" }));
+        } catch {
+          setBranchStatuses((prev) => ({ ...prev, [id]: "error" }));
+        }
+      })
+    );
+
+    setBranchCreating(false);
+  }, [repoActivity, selectedIds, newBranchName, project]);
+
+  // ── Export ────────────────────────────────────────────────────────────────────
+
+  const handleExport = useCallback(() => {
+    const items =
+      selectedIds.size > 0
+        ? repoActivity.filter((r) => selectedIds.has(r.repo.id!))
+        : repoActivity;
+
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+
+    const headers = [
+      "Repository",
+      "Default Branch",
+      "URL",
+      "Commits",
+      "Last Commit Date",
+      "Last Author",
+      "Last Commit Message",
+    ];
+
+    const rows = items.map((r) => {
+      const last = r.commits[0];
+      return [
+        r.repo.name || "",
+        branchName(r.repo),
+        r.repo.webUrl || "",
+        r.commits.length.toString(),
+        last?.committer?.date ? last.committer.date.toISOString() : "",
+        last?.author?.name || "",
+        last?.comment?.split("\n")[0] || "",
+      ].map(esc);
+    });
+
+    const csv = [
+      headers.map(esc).join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
+
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `repo-activity-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [repoActivity, selectedIds]);
+
   // ── Columns ───────────────────────────────────────────────────────────────────
 
   const columns: ITableColumn<RepoActivity>[] = [
     {
       id: "select",
       name: "",
-      // Select-all lives in the column header — renderHeaderCell must return a <th> (not a <div>)
-      // because the Table uses the return value directly as the table header cell element.
+      // renderHeaderCell must return a <th> with col-header-N class — the Table uses it
+      // directly in the <tr>; a <div> would be foster-parented out by the browser.
       renderHeaderCell: (columnIndex) => (
         <th
           key={`col-header-${columnIndex}`}
@@ -404,30 +578,45 @@ const Hub: React.FC = () => {
           </SimpleTableCell>
         );
       },
-      width: -26,
+      width: -24,
     },
     {
-      id: "lockStatus",
+      id: "status",
       name: "",
       renderCell: (_rowIndex, columnIndex, tableColumn, item) => {
-        const status = lockStatuses[item.repo.id!];
+        const lockSt = lockStatuses[item.repo.id!];
+        const branchSt = branchStatuses[item.repo.id!];
         return (
           <SimpleTableCell
             key={`col-${columnIndex}`}
             columnIndex={columnIndex}
             tableColumn={tableColumn}
           >
-            {status === "locking" && <Spinner size={SpinnerSize.small} />}
-            {status === "locked" && (
-              <span className="lock-icon" title="Branch locked">🔒</span>
-            )}
-            {status === "error" && (
-              <span className="lock-error" title="Lock failed — check permissions">⚠</span>
-            )}
+            <div className="status-cell">
+              {lockSt === "locking" && <Spinner size={SpinnerSize.small} />}
+              {lockSt === "locked" && (
+                <span className="lock-icon" title="Branch locked">🔒</span>
+              )}
+              {lockSt === "error" && (
+                <span className="lock-error" title="Lock failed — check permissions">⚠</span>
+              )}
+              {(branchSt === "checking" || branchSt === "creating") && (
+                <Spinner size={SpinnerSize.small} />
+              )}
+              {branchSt === "created" && (
+                <span className="branch-created-icon" title="Branch created">✔</span>
+              )}
+              {branchSt === "exists" && (
+                <span className="branch-exists-icon" title="Branch already exists — skipped">⊘</span>
+              )}
+              {branchSt === "error" && (
+                <span className="lock-error" title="Branch creation failed — check permissions">⚠</span>
+              )}
+            </div>
           </SimpleTableCell>
         );
       },
-      width: -7,
+      width: -9,
     },
   ];
 
@@ -449,7 +638,7 @@ const Hub: React.FC = () => {
               <TextField
                 value={project}
                 onChange={(_, v) => setProject(v)}
-                placeholder="e.g. Credible"
+                placeholder="e.g. MyProject"
                 width={TextFieldWidth.standard}
               />
             </div>
@@ -513,6 +702,29 @@ const Hub: React.FC = () => {
                     onClick={handleLock}
                     disabled={selectedIds.size === 0 || locking}
                     className="lock-button"
+                  />
+                  <div className="create-branch-group">
+                    <input
+                      type="text"
+                      className="branch-name-input"
+                      placeholder="New branch name"
+                      value={newBranchName}
+                      onChange={(e) => setNewBranchName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateBranch();
+                      }}
+                    />
+                    <Button
+                      text={branchCreating ? "Creating..." : "Create Branch"}
+                      onClick={handleCreateBranch}
+                      disabled={
+                        selectedIds.size === 0 || !newBranchName.trim() || branchCreating
+                      }
+                    />
+                  </div>
+                  <Button
+                    text={selectedIds.size > 0 ? "Export Selected" : "Export All"}
+                    onClick={handleExport}
                   />
                   {selectedIds.size > 0 && (
                     <span className="selection-count">

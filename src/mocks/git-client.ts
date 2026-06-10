@@ -16,8 +16,8 @@ function commit(
   return {
     commitId: id,
     comment: message,
-    author: { name: authorName, email: `${authorName.toLowerCase().replace(" ", ".")}@credible.com`, date },
-    committer: { name: authorName, email: `${authorName.toLowerCase().replace(" ", ".")}@credible.com`, date },
+    author: { name: authorName, email: `${authorName.toLowerCase().replace(" ", ".")}@example.com`, date },
+    committer: { name: authorName, email: `${authorName.toLowerCase().replace(" ", ".")}@example.com`, date },
     url: "#",
   };
 }
@@ -33,6 +33,19 @@ const REPOS = [
   { id: "r8", name: "documentation",    defaultBranch: "refs/heads/main",    webUrl: "#" },
   { id: "r9", name: "auth-service",     defaultBranch: "refs/heads/main",    webUrl: "#" },
 ];
+
+// Branches per repo — used by getRefs to simulate pre-existing branches.
+const BRANCHES: Record<string, string[]> = {
+  r1: ["main", "develop", "release/v2.0"],
+  r2: ["main", "develop"],
+  r3: ["develop", "feature/offline-mode"],
+  r4: ["main"],
+  r5: ["master", "feature/datepicker"],
+  r6: ["main"],
+  r7: ["master"],
+  r8: ["main"],
+  r9: ["main", "hotfix/jwt-patch"],
+};
 
 // Commits per repo — repos r7 and r8 have none so they're filtered out.
 const COMMITS: Record<string, ReturnType<typeof commit>[]> = {
@@ -84,6 +97,15 @@ export const mockGitClient = {
   getCommits: async (repoId: string, _criteria: any, _project: string) => {
     await delay(Math.random() * 300 + 100);
     return COMMITS[repoId] ?? [];
+  },
+
+  getRefs: async (repoId: string, _project: string, filter?: string) => {
+    await delay(150);
+    const branches = BRANCHES[repoId] ?? ["main"];
+    if (!filter) return branches.map((b) => ({ name: `refs/heads/${b}` }));
+    // filter is "heads/<branchname>" — return exact match only
+    const name = filter.replace(/^heads\//, "");
+    return branches.includes(name) ? [{ name: `refs/heads/${name}` }] : [];
   },
 
   updateRef: async (newRefInfo: any, _repoId: string, _filter: string, _project: string) => {
