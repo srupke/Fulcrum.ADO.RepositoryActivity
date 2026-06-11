@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "fulcrum-repo-activity",
   "publisher": "ScottRupke",
-  "version": "1.0.7",
+  "version": "1.0.14",
   "name": "Fulcrum Repository Activity",
   "description": "Lists repositories with commits to the default branch since a selected date.",
   "public": true,
@@ -38,10 +38,39 @@
     },
     {
       "path": "overview.md",
-      "assetType": "Microsoft.VisualStudio.Services.Content.Details"
+      "assetType": "Microsoft.VisualStudio.Services.Content.Details",
+      "addressable": true
+    },
+    {
+      "path": "LICENSE",
+      "assetType": "Microsoft.VisualStudio.Services.Content.License",
+      "addressable": true
+    },
+    {
+      "path": "privacy.md",
+      "assetType": "Microsoft.VisualStudio.Services.Content.Privacy",
+      "addressable": true
     }
   ],
   "scopes": [
     "vso.code"
-  ]
+  ],
+  "license": "LICENSE",
+  "links": {
+    "repository": {
+      "uri": "https://github.com/srupke/Fulcrum.ADO.RepositoryActivity"
+    },
+    "issues": {
+      "uri": "https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/issues"
+    },
+    "support": {
+      "uri": "https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/issues"
+    },
+    "license": {
+      "uri": "https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/blob/main/LICENSE"
+    },
+    "privacypolicy": {
+      "uri": "https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/blob/main/privacy.md"
+    }
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "fulcrum-repo-activity",
-  "version": "1.0.0",
+  "version": "1.0.14",
   "description": "Azure DevOps Extension — Repository Activity Hub",
   "scripts": {
     "start": "webpack serve --mode development --env mock",
