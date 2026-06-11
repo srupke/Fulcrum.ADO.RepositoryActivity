@@ -1,11 +1,11 @@
 {
   "manifestVersion": 1,
   "id": "fulcrum-repo-activity",
-  "publisher": "my-publisher",
+  "publisher": "ScottRupke",
   "version": "1.0.0",
   "name": "Fulcrum Repository Activity",
   "description": "Lists repositories with commits to the default branch since a selected date.",
-  "public": false,
+  "public": true,
   "categories": ["Azure Repos"],
   "targets": [
     {
@@ -35,6 +35,10 @@
     {
       "path": "images",
       "addressable": true
+    },
+    {
+      "path": "overview.md",
+      "assetType": "Microsoft.VisualStudio.Services.Content.Details"
     }
   ],
   "scopes": [
