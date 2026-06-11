@@ -29,6 +29,7 @@ module.exports = (env = {}, argv) => {
         ? {
             "azure-devops-extension-sdk": path.resolve(__dirname, "src/mocks/sdk.ts"),
             "azure-devops-extension-api/Git": path.resolve(__dirname, "node_modules/azure-devops-extension-api/Git"),
+            "azure-devops-extension-api/Core/CoreClient": path.resolve(__dirname, "node_modules/azure-devops-extension-api/Core/CoreClient"),
             "azure-devops-extension-api": path.resolve(__dirname, "src/mocks/api.ts"),
           }
         : {},
