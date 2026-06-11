@@ -8,36 +8,42 @@ An Azure DevOps extension that adds a **Repo Activity** hub to the Repos section
 
 ### Scan Scope Configuration
 
-Click **Configure** to define exactly which projects and repositories are included in each scan. Without a saved configuration the extension scans all repositories in the project name you type; with one saved it targets only the projects and repositories you have selected.
+Click **Configure** to open the scope panel and define exactly which projects and repositories are included in each scan. Without a saved configuration the extension scans all repositories in the project name you type; with one saved it targets only the projects and repositories you have selected.
 
-In the **Configure Scan Scope** panel:
+![The Configure Scan Scope panel showing MyProject enabled with 7 of 9 repositories individually selected. AnotherProject and DevOps are available but not yet enabled.](images/configure-scan-scope.png)
 
-- **Enable projects** — check any number of ADO projects. Disabled projects are never scanned.
-- **All repositories (default)** — every repository in the enabled project is scanned.
-- **Select specific repositories** — expand a project and switch to this mode to pick individual repositories from a searchable, paginated list. Useful when a project contains hundreds of repositories and you only care about a subset.
-  - A **filter** input narrows the list by name.
-  - **Select all / Deselect all** buttons apply to the currently filtered set.
+The panel loads every project in your Azure DevOps organization. For each enabled project you can choose:
+
+- **All repositories (default)** — every repository in the project is scanned.
+- **Select specific repositories** — pick individual repositories from a searchable list. Useful when a project contains hundreds of repositories and you only care about a subset.
+  - Type in the **filter** box to narrow the list by name.
+  - **Select all / Deselect all** apply to whatever is currently visible in the filter.
   - The `X / Y selected` counter updates in real time.
-- Configuration is persisted in the ADO extension data service and survives page refreshes and re-deployments.
-- **Clear Configuration** (bottom-left of the panel) reverts the extension to manual project-entry mode.
+
+Configuration is persisted in the ADO extension data service and survives page refreshes. **Clear Configuration** (bottom-left of the panel) reverts to manual project-entry mode at any time.
 
 ### Repository Scanner
 
-- When no configuration is saved: enter a **project name** and a **since date** (defaults to the last 14 days) and click **Scan Repositories**.
-- When a configuration is saved: the project field is replaced by a **scope badge** showing the number of configured projects. The scan runs against all enabled projects and their selected repositories.
-- Results are shown in a sortable table. When more than one project is scanned a **Project** column appears automatically.
-- Sortable columns: Project (multi-project mode only), Repository, Default Branch, Commits, Open PRs, Last Commit.
+Enter a **project name** and a **since date** (defaults to the last 14 days), then click **Scan Repositories**. When a scope configuration is saved, the project field is replaced by a badge showing the number of configured projects and the scan runs across all of them automatically.
+
+![Scan results showing 7 repositories with recent commits, sorted by last commit date. Each row shows the repository name, default branch, commit count, open PR count, last commit date and author, and the most recent commit message.](images/scanner-results.png)
+
+Results are displayed in a sortable table as soon as the scan completes. A live progress counter (`Scanning repositories… X / Y`) is shown while the scan is running so the page never looks frozen. When more than one project is scanned a **Project** column appears automatically. Sortable columns: Project (multi-project mode only), Repository, Default Branch, Commits, Open PRs, Last Commit.
 
 ### Bulk Actions (operate on selected rows)
 
-Use the checkbox in the column header to select/deselect all rows. The **Actions** menu is enabled whenever at least one row is selected.
+Check individual rows or use the header checkbox to select all. The **Actions** menu activates as soon as at least one row is selected.
 
 | Action | Description |
 |---|---|
 | **Lock Repository** | Sets `isLocked = true` on the default branch of each selected repo. Prevents direct pushes; PRs are unaffected. |
 | **Unlock Repository** | Removes the lock from the default branch of each selected repo. |
-| **Create Branch** | Type a branch name and click **Create Branch** (or press Enter). The extension checks each repo for a pre-existing branch with that name, warns about conflicts, and creates the branch from the tip commit of the default branch in all non-conflicting repos. |
+| **Create Branch** | Opens a dialog to enter a branch name. The extension checks each selected repo for a pre-existing branch with that name, warns about conflicts, and creates the branch from the tip commit of the default branch in all non-conflicting repos. |
 | **Export Selected / Export All** | Downloads a UTF-8 CSV (`repo-activity-YYYY-MM-DD.csv`) of the current result set. Exports selected rows when any are checked; exports all results otherwise. The CSV includes a **Project** column. |
+
+![The Create Branch dialog open over the results table with 2 repositories selected. A branch name input is shown with a hint that the branch will be created from the latest commit in each selected repository.](images/create-branch.png)
+
+Typing a branch name and pressing **Enter** is equivalent to clicking **Create Branch**. If the branch already exists in some of the selected repositories the extension lists the conflicts and asks for confirmation before proceeding with the remaining repos.
 
 ### Status Column
 
