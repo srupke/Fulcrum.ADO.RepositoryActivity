@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "fulcrum-repo-activity",
   "publisher": "ScottRupke",
-  "version": "1.0.0",
+  "version": "1.0.7",
   "name": "Fulcrum Repository Activity",
   "description": "Lists repositories with commits to the default branch since a selected date.",
   "public": true,
