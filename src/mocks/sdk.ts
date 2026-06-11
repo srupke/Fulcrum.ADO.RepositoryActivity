@@ -24,3 +24,17 @@ export function getWebContext() {
     user: { id: "mock-user", name: "Dev User" },
   };
 }
+
+// In-memory store backing the mock ExtensionDataService.
+const _store: Record<string, any> = {};
+
+export async function getService(_serviceId: string): Promise<any> {
+  return {
+    getDataManager: async () => ({
+      getValue: async (key: string) => _store[key] ?? null,
+      setValue: async (key: string, value: any) => {
+        _store[key] = value;
+      },
+    }),
+  };
+}

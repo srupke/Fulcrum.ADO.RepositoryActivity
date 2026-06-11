@@ -6,26 +6,47 @@ An Azure DevOps extension that adds a **Repo Activity** hub to the Repos section
 
 ## Features
 
+### Scan Scope Configuration
+
+Click **Configure** to define exactly which projects and repositories are included in each scan. Without a saved configuration the extension scans all repositories in the project name you type; with one saved it targets only the projects and repositories you have selected.
+
+In the **Configure Scan Scope** panel:
+
+- **Enable projects** — check any number of ADO projects. Disabled projects are never scanned.
+- **All repositories (default)** — every repository in the enabled project is scanned.
+- **Select specific repositories** — expand a project and switch to this mode to pick individual repositories from a searchable, paginated list. Useful when a project contains hundreds of repositories and you only care about a subset.
+  - A **filter** input narrows the list by name.
+  - **Select all / Deselect all** buttons apply to the currently filtered set.
+  - The `X / Y selected` counter updates in real time.
+- Configuration is persisted in the ADO extension data service and survives page refreshes and re-deployments.
+- **Clear Configuration** (bottom-left of the panel) reverts the extension to manual project-entry mode.
+
 ### Repository Scanner
-- Enter a **project name** and a **since date** (defaults to the last 14 days) and click **Scan Repositories**.
-- Results are shown in a sortable table with columns: Repository, Default Branch, Commits, Last Commit (date + author), Last Commit Message.
-- All columns except the checkbox and status columns are sortable by clicking the header.
+
+- When no configuration is saved: enter a **project name** and a **since date** (defaults to the last 14 days) and click **Scan Repositories**.
+- When a configuration is saved: the project field is replaced by a **scope badge** showing the number of configured projects. The scan runs against all enabled projects and their selected repositories.
+- Results are shown in a sortable table. When more than one project is scanned a **Project** column appears automatically.
+- Sortable columns: Project (multi-project mode only), Repository, Default Branch, Commits, Open PRs, Last Commit.
 
 ### Bulk Actions (operate on selected rows)
-All bulk actions work on the checked rows. Use the checkbox in the column header to select/deselect all.
+
+Use the checkbox in the column header to select/deselect all rows. The **Actions** menu is enabled whenever at least one row is selected.
 
 | Action | Description |
 |---|---|
-| **Lock Branches** | Sets `isLocked = true` on the default branch of each selected repo. Prevents direct pushes; PRs are unaffected. Locks can be removed at any time in repo settings. |
-| **Create Branch** | Type a branch name and click **Create Branch** (or press Enter). The extension checks each selected repo for a pre-existing branch with that name, warns about conflicts, and creates the branch from the tip commit of the default branch in all non-conflicting repos. |
-| **Export Selected / Export All** | Downloads a UTF-8 CSV file (`repo-activity-YYYY-MM-DD.csv`) containing the current result set. Exports selected rows when any are checked; exports all results otherwise. |
+| **Lock Repository** | Sets `isLocked = true` on the default branch of each selected repo. Prevents direct pushes; PRs are unaffected. |
+| **Unlock Repository** | Removes the lock from the default branch of each selected repo. |
+| **Create Branch** | Type a branch name and click **Create Branch** (or press Enter). The extension checks each repo for a pre-existing branch with that name, warns about conflicts, and creates the branch from the tip commit of the default branch in all non-conflicting repos. |
+| **Export Selected / Export All** | Downloads a UTF-8 CSV (`repo-activity-YYYY-MM-DD.csv`) of the current result set. Exports selected rows when any are checked; exports all results otherwise. The CSV includes a **Project** column. |
 
 ### Status Column
+
 The rightmost column shows per-row status icons after a bulk action:
 
 | Icon | Meaning |
 |---|---|
 | 🔒 | Default branch locked |
+| 🔓 | Default branch unlocked |
 | ✔ (green) | Branch created successfully |
 | ⊘ (gray) | Branch already existed — skipped |
 | ⚠ (red) | Operation failed — check permissions |
@@ -54,8 +75,11 @@ The project ships with a local mock that replaces the Azure DevOps SDK and API w
 Press **F5** in VS Code (or run `npm run dev` in a terminal). The extension opens automatically at `http://localhost:3000/hub/hub.html`.
 
 The mock includes:
-- 9 repositories, 7 with recent commits
+
+- **3 projects** (`MyProject`, `AnotherProject`, `DevOps`) returned by the Configure panel
+- **9 repositories** across `MyProject`, 7 with recent commits
 - Pre-existing branches per repo (useful for testing the Create Branch conflict-detection path — try creating a branch named `develop`)
+- In-memory extension data storage so configuration saves and loads correctly during a dev session
 
 To start the dev server manually:
 
@@ -182,7 +206,7 @@ npm run publish
 
 ### Scopes
 
-The extension declares the `vso.code` scope, which grants read access to repositories and branches. No write scope is needed for scanning; the Lock Branches and Create Branch features use the same scope because branch locking and ref creation are permitted under `vso.code` for users who already have the appropriate repository permissions. If your organization enforces stricter scope policies, add `vso.code_manage` to the `scopes` array in `vss-extension.json`.
+The extension declares the `vso.code` scope, which grants read access to repositories, branches, and projects. No additional write scope is needed for scanning; the Lock Branches and Create Branch features use the same scope because branch locking and ref creation are permitted under `vso.code` for users who already have the appropriate repository permissions. If your organization enforces stricter scope policies, add `vso.code_manage` to the `scopes` array in `vss-extension.json`.
 
 ---
 
@@ -195,9 +219,10 @@ src/
     hub.scss      # Component styles (CSS custom properties for ADO theming)
     hub.html      # Entry HTML page
   mocks/
-    sdk.ts        # Mock Azure DevOps Extension SDK
-    api.ts        # Mock getClient() — returns mockGitClient
-    git-client.ts # Stub data: repos, commits, branches
+    sdk.ts        # Mock Azure DevOps Extension SDK (includes getService / data store)
+    api.ts        # Mock getClient() — routes to git or core mock based on client class
+    git-client.ts # Stub data: repos, commits, branches, PRs, lock state
+    core-client.ts # Stub data: ADO projects list for the Configure panel
 scripts/
   dev-start.js   # Kills port 3000, then starts webpack-dev-server
 vss-extension.json  # Extension manifest
@@ -211,6 +236,6 @@ webpack.config.js   # Webpack 5 config; --env mock enables stub aliases
 | Framework | React 16 (required by azure-devops-ui v2) |
 | UI Components | azure-devops-ui v2 |
 | ADO SDK | azure-devops-extension-sdk v4 |
-| ADO API | azure-devops-extension-api v4 |
+| ADO API | azure-devops-extension-api v4 (`Git`, `Core/CoreClient`) |
 | Bundler | Webpack 5 |
 | Language | TypeScript 5 |

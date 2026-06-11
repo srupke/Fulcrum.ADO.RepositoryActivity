@@ -329,6 +329,265 @@
   cursor: help;
 }
 
+// ── Scan controls — scope badge & configure button ────────────────────────────
+
+.config-scope-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-scope-badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--communication-foreground, #0078d4);
+  background-color: var(--palette-primary-tint-10, #deecf9);
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--communication-foreground, #0078d4);
+}
+
+.config-clear-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary-color, #605e5c);
+  text-decoration: underline;
+  padding: 0;
+
+  &:hover {
+    color: var(--text-primary-color, #323130);
+  }
+}
+
+// ── Configure Scan Scope modal ─────────────────────────────────────────────────
+
+.modal-dialog--config {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+
+  .modal-body {
+    max-height: 62vh;
+    overflow-y: auto;
+  }
+}
+
+.config-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  line-height: 1.5;
+}
+
+.config-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  font-style: italic;
+}
+
+// ── Project list ───────────────────────────────────────────────────────────────
+
+.config-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.config-project {
+  border: 1px solid var(--palette-neutral-10, #e1dfdd);
+  border-radius: 3px;
+  background-color: var(--background-color, #fff);
+
+  &--enabled {
+    border-color: var(--palette-neutral-20, #8a8886);
+  }
+}
+
+.config-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
+.config-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-secondary-color, #605e5c);
+  padding: 2px 6px;
+  border-radius: 2px;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: var(--palette-neutral-6, #f0f0f0);
+    color: var(--text-primary-color, #323130);
+  }
+}
+
+// ── Per-project repo options ───────────────────────────────────────────────────
+
+.config-project-repos {
+  border-top: 1px solid var(--palette-neutral-10, #e1dfdd);
+  padding: 10px 12px 12px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary-color, #323130);
+  cursor: pointer;
+
+  input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--communication-foreground, #0078d4);
+  }
+}
+
+// ── Repo selector ──────────────────────────────────────────────────────────────
+
+.config-repo-section {
+  margin-top: 4px;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-repo-loading {
+  padding: 8px 0;
+}
+
+.config-repo-error {
+  font-size: 13px;
+  color: #a80000;
+}
+
+.config-repo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.config-repo-search {
+  flex: 1;
+  min-width: 160px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--palette-neutral-20, #8a8886);
+  border-radius: 2px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary-color, #323130);
+  background-color: var(--background-color, #fff);
+
+  &:focus {
+    outline: none;
+    border-color: var(--communication-foreground, #0078d4);
+    box-shadow: 0 0 0 1px var(--communication-foreground, #0078d4);
+  }
+
+  &::placeholder {
+    color: var(--text-secondary-color, #605e5c);
+  }
+}
+
+.config-repo-count {
+  font-size: 12px;
+  color: var(--text-secondary-color, #605e5c);
+  white-space: nowrap;
+}
+
+.config-repo-select-all {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--communication-foreground, #0078d4);
+  padding: 0;
+  white-space: nowrap;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--communication-foreground-hover, #106ebe);
+  }
+}
+
+.config-repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.config-repo-item {
+  display: flex;
+  align-items: center;
+}
+
+.config-repo-no-match {
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  font-style: italic;
+  padding: 4px 0;
+  grid-column: 1 / -1;
+}
+
+// ── Config modal footer ────────────────────────────────────────────────────────
+
+.config-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.config-modal-footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+.config-clear-config-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover {
+    color: #a80000;
+  }
+}
+
+// ── Project column in results table ───────────────────────────────────────────
+
+.project-name-cell {
+  font-size: 13px;
+  color: var(--text-secondary-color, #605e5c);
+  font-style: italic;
+}
+
 // ── Table cell content ─────────────────────────────────────────────────────────
 
 .repo-link {

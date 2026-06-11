@@ -1,8 +1,9 @@
 // Mock for azure-devops-extension-api — used by webpack-dev-server in mock mode.
 import { mockGitClient } from "./git-client";
+import { mockCoreClient } from "./core-client";
 
-// The real getClient() takes a client class and returns an instance.
-// In mock mode we ignore the class and always return our mock.
-export function getClient(_clientClass: any): any {
+// Route to the correct mock based on the client class name.
+export function getClient(clientClass: any): any {
+  if (clientClass?.name === "CoreRestClient") return mockCoreClient;
   return mockGitClient;
 }
