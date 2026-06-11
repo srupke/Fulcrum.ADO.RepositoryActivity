@@ -10,6 +10,8 @@ import {
   GitVersionType,
   GitVersionOptions,
   GitRefUpdate,
+  PullRequestStatus,
+  GitPullRequestSearchCriteria,
 } from "azure-devops-extension-api/Git";
 import { Page } from "azure-devops-ui/Page";
 import { Header, TitleSize } from "azure-devops-ui/Header";
@@ -33,6 +35,8 @@ import "./hub.scss";
 interface RepoActivity {
   repo: GitRepository;
   commits: GitCommitRef[];
+  prCount?: number;
+  isLocked?: boolean;
   error?: string;
 }
 
@@ -41,7 +45,8 @@ interface SortState {
   order: SortOrder;
 }
 
-type LockStatus = "locking" | "locked" | "error";
+type LockStatus = "locking" | "error";
+type UnlockStatus = "unlocking" | "error";
 type BranchCreateStatus = "checking" | "creating" | "created" | "exists" | "error";
 
 const DEFAULT_PROJECT = "MyProject";
@@ -84,6 +89,15 @@ const Hub: React.FC = () => {
   const [lockStatuses, setLockStatuses] = useState<Record<string, LockStatus>>({});
   const [locking, setLocking] = useState(false);
 
+  // Unlock state
+  const [unlockStatuses, setUnlockStatuses] = useState<Record<string, UnlockStatus>>({});
+  const [unlocking, setUnlocking] = useState(false);
+
+  // Actions dropdown / modal
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [branchModalOpen, setBranchModalOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
   // Branch creation state
   const [newBranchName, setNewBranchName] = useState("");
   const [branchCreating, setBranchCreating] = useState(false);
@@ -109,6 +123,7 @@ const Hub: React.FC = () => {
     setTotalRepos(0);
     setSelectedIds(new Set());
     setLockStatuses({});
+    setUnlockStatuses({});
     setBranchStatuses({});
 
     try {
@@ -133,12 +148,20 @@ const Hub: React.FC = () => {
                 versionOptions: GitVersionOptions.None,
               },
             } as GitQueryCommitsCriteria;
-            const commits = await gitClient.getCommits(
-              repo.id!,
-              criteria,
-              trimmedProject
-            );
-            return { repo, commits };
+            const [commits, refs, pullRequests] = await Promise.all([
+              gitClient.getCommits(repo.id!, criteria, trimmedProject),
+              gitClient.getRefs(repo.id!, trimmedProject, `heads/${branch}`).catch(() => []),
+              gitClient.getPullRequests(
+                repo.id!,
+                {
+                  status: PullRequestStatus.Active,
+                  targetRefName: repo.defaultBranch,
+                } as GitPullRequestSearchCriteria,
+                trimmedProject
+              ).catch(() => []),
+            ]);
+            const ref = (refs as any[]).find((r: any) => r.name === `refs/heads/${branch}`);
+            return { repo, commits, prCount: pullRequests.length, isLocked: ref?.isLocked };
           } catch (e: any) {
             return { repo, commits: [], error: e.message };
           }
@@ -171,7 +194,7 @@ const Hub: React.FC = () => {
   // ── Sort ──────────────────────────────────────────────────────────────────────
 
   // Column index → colId mapping (must match the columns array order below)
-  const SORT_COLS = ["", "name", "branch", "commits", "lastCommit", "", ""];
+  const SORT_COLS = ["", "name", "branch", "commits", "prs", "lastCommit", "", ""];
 
   const handleSortRef = useRef<(colIdx: number, order: SortOrder) => void>(() => {});
   handleSortRef.current = (colIdx, proposedOrder) => {
@@ -197,6 +220,8 @@ const Hub: React.FC = () => {
           return dir * branchName(a.repo).localeCompare(branchName(b.repo));
         case "commits":
           return dir * (a.commits.length - b.commits.length);
+        case "prs":
+          return dir * ((a.prCount ?? 0) - (b.prCount ?? 0));
         case "lastCommit": {
           const aT = a.commits[0]?.committer?.date?.getTime() ?? 0;
           const bT = b.commits[0]?.committer?.date?.getTime() ?? 0;
@@ -273,8 +298,11 @@ const Hub: React.FC = () => {
             `heads/${branch}`,
             trimmedProject
           );
-          setLockStatuses((prev) => ({ ...prev, [id]: "locked" }));
-        } catch (e: any) {
+          setRepoActivity((prev) =>
+            prev.map((a) => (a.repo.id === id ? { ...a, isLocked: true } : a))
+          );
+          setLockStatuses((prev) => { const next = { ...prev }; delete next[id]; return next; });
+        } catch {
           setLockStatuses((prev) => ({ ...prev, [id]: "error" }));
         }
       })
@@ -282,6 +310,70 @@ const Hub: React.FC = () => {
 
     setLocking(false);
   }, [repoActivity, selectedIds, project]);
+
+  // ── Unlock ────────────────────────────────────────────────────────────────────
+
+  const handleUnlock = useCallback(async () => {
+    const toUnlock = repoActivity.filter((r) => selectedIds.has(r.repo.id!));
+    if (toUnlock.length === 0) return;
+
+    const branchList = toUnlock
+      .map((r) => `  • ${r.repo.name}  (${branchName(r.repo)})`)
+      .join("\n");
+
+    const confirmed = window.confirm(
+      `Unlock default branch on ${toUnlock.length} ${toUnlock.length === 1 ? "repository" : "repositories"}?\n\n` +
+        branchList +
+        "\n\nDirect pushes will be allowed again."
+    );
+    if (!confirmed) return;
+
+    setUnlocking(true);
+    const gitClient = getClient(GitRestClient);
+    const trimmedProject = project.trim();
+
+    await Promise.all(
+      toUnlock.map(async (activity) => {
+        const id = activity.repo.id!;
+        const branch = branchName(activity.repo);
+        setUnlockStatuses((prev) => ({ ...prev, [id]: "unlocking" }));
+        try {
+          await gitClient.updateRef(
+            {
+              isLocked: false,
+              name: activity.repo.defaultBranch,
+              newObjectId: activity.commits[0]?.commitId || "",
+              oldObjectId: activity.commits[0]?.commitId || "",
+              repositoryId: id,
+            } as GitRefUpdate,
+            id,
+            `heads/${branch}`,
+            trimmedProject
+          );
+          setRepoActivity((prev) =>
+            prev.map((a) => (a.repo.id === id ? { ...a, isLocked: false } : a))
+          );
+          setUnlockStatuses((prev) => { const next = { ...prev }; delete next[id]; return next; });
+        } catch {
+          setUnlockStatuses((prev) => ({ ...prev, [id]: "error" }));
+        }
+      })
+    );
+
+    setUnlocking(false);
+  }, [repoActivity, selectedIds, project]);
+
+  // Close actions dropdown on outside click
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) {
+        setActionsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [actionsOpen]);
 
   // ── Create Branch ─────────────────────────────────────────────────────────────
 
@@ -500,7 +592,12 @@ const Hub: React.FC = () => {
           columnIndex={columnIndex}
           tableColumn={tableColumn}
         >
-          <a href={item.repo.webUrl} target="_top" className="repo-link bolt-link">
+          <a
+            href={`${item.repo.webUrl}?version=GB${branchName(item.repo)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="repo-link bolt-link"
+          >
             {item.repo.name}
           </a>
         </SimpleTableCell>
@@ -536,6 +633,32 @@ const Hub: React.FC = () => {
             {item.commits.length}
             {item.commits.length === 500 ? "+" : ""}
           </span>
+        </SimpleTableCell>
+      ),
+      width: -8,
+    },
+    {
+      id: "prs",
+      name: "Open PRs",
+      sortProps: { sortOrder: sortState?.colId === "prs" ? sortState.order : undefined },
+      renderCell: (_rowIndex, columnIndex, tableColumn, item) => (
+        <SimpleTableCell
+          key={`col-${columnIndex}`}
+          columnIndex={columnIndex}
+          tableColumn={tableColumn}
+        >
+          {item.prCount ? (
+            <a
+              href={`${item.repo.webUrl}/pullrequests?_a=active&targetRefName=refs%2Fheads%2F${branchName(item.repo)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="pr-count pr-count--active"
+            >
+              {item.prCount}
+            </a>
+          ) : (
+            <span className="pr-count">—</span>
+          )}
         </SimpleTableCell>
       ),
       width: -8,
@@ -578,13 +701,14 @@ const Hub: React.FC = () => {
           </SimpleTableCell>
         );
       },
-      width: -24,
+      width: -16,
     },
     {
       id: "status",
       name: "",
       renderCell: (_rowIndex, columnIndex, tableColumn, item) => {
         const lockSt = lockStatuses[item.repo.id!];
+        const unlockSt = unlockStatuses[item.repo.id!];
         const branchSt = branchStatuses[item.repo.id!];
         return (
           <SimpleTableCell
@@ -594,11 +718,18 @@ const Hub: React.FC = () => {
           >
             <div className="status-cell">
               {lockSt === "locking" && <Spinner size={SpinnerSize.small} />}
-              {lockSt === "locked" && (
-                <span className="lock-icon" title="Branch locked">🔒</span>
-              )}
               {lockSt === "error" && (
                 <span className="lock-error" title="Lock failed — check permissions">⚠</span>
+              )}
+              {unlockSt === "unlocking" && <Spinner size={SpinnerSize.small} />}
+              {unlockSt === "error" && (
+                <span className="lock-error" title="Unlock failed — check permissions">⚠</span>
+              )}
+              {!lockSt && !unlockSt && item.isLocked === true && (
+                <span className="lock-icon" title="Branch is locked">🔒</span>
+              )}
+              {!lockSt && !unlockSt && item.isLocked === false && (
+                <span className="unlock-icon" title="Branch is unlocked">🔓</span>
               )}
               {(branchSt === "checking" || branchSt === "creating") && (
                 <Spinner size={SpinnerSize.small} />
@@ -693,34 +824,34 @@ const Hub: React.FC = () => {
               </div>
               {repoActivity.length > 0 && (
                 <div className="results-actions">
-                  <Button
-                    text={
-                      selectedIds.size > 0
-                        ? `Lock ${selectedIds.size} ${selectedIds.size === 1 ? "Branch" : "Branches"}`
-                        : "Lock Branches"
-                    }
-                    onClick={handleLock}
-                    disabled={selectedIds.size === 0 || locking}
-                    className="lock-button"
-                  />
-                  <div className="create-branch-group">
-                    <input
-                      type="text"
-                      className="branch-name-input"
-                      placeholder="New branch name"
-                      value={newBranchName}
-                      onChange={(e) => setNewBranchName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleCreateBranch();
-                      }}
-                    />
+                  <div className="actions-dropdown" ref={actionsRef}>
                     <Button
-                      text={branchCreating ? "Creating..." : "Create Branch"}
-                      onClick={handleCreateBranch}
-                      disabled={
-                        selectedIds.size === 0 || !newBranchName.trim() || branchCreating
-                      }
+                      text="Actions"
+                      onClick={() => setActionsOpen((o) => !o)}
+                      disabled={selectedIds.size === 0 || locking || unlocking || branchCreating}
                     />
+                    {actionsOpen && (
+                      <div className="actions-menu">
+                        <button
+                          className="actions-menu-item"
+                          onClick={() => { setActionsOpen(false); handleLock(); }}
+                        >
+                          Lock Repository
+                        </button>
+                        <button
+                          className="actions-menu-item"
+                          onClick={() => { setActionsOpen(false); handleUnlock(); }}
+                        >
+                          Unlock Repository
+                        </button>
+                        <button
+                          className="actions-menu-item"
+                          onClick={() => { setActionsOpen(false); setBranchModalOpen(true); }}
+                        >
+                          Create Branch
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <Button
                     text={selectedIds.size > 0 ? "Export Selected" : "Export All"}
@@ -760,6 +891,49 @@ const Hub: React.FC = () => {
           </>
         )}
       </div>
+
+      {branchModalOpen && (
+        <div className="modal-overlay" onClick={() => setBranchModalOpen(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Create Branch</span>
+              <button className="modal-close" onClick={() => setBranchModalOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <label className="control-label">Branch Name</label>
+              <input
+                type="text"
+                className="branch-name-input"
+                placeholder="e.g. feature/my-branch"
+                value={newBranchName}
+                onChange={(e) => setNewBranchName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newBranchName.trim()) {
+                    setBranchModalOpen(false);
+                    handleCreateBranch();
+                  } else if (e.key === "Escape") {
+                    setBranchModalOpen(false);
+                  }
+                }}
+                autoFocus
+              />
+              <p className="modal-hint">
+                Branch will be created from the latest commit in each of the{" "}
+                {selectedIds.size} selected {selectedIds.size === 1 ? "repository" : "repositories"}.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <Button text="Cancel" onClick={() => setBranchModalOpen(false)} />
+              <Button
+                text="Create Branch"
+                primary={true}
+                onClick={() => { setBranchModalOpen(false); handleCreateBranch(); }}
+                disabled={!newBranchName.trim()}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </Page>
   );
 };
