@@ -128,10 +128,122 @@
   gap: 10px;
 }
 
-.create-branch-group {
+// ── Actions dropdown ───────────────────────────────────────────────────────────
+
+.actions-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 180px;
+  background-color: var(--background-color, #fff);
+  border: 1px solid var(--palette-neutral-20, #8a8886);
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.actions-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary-color, #323130);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--palette-neutral-6, #f0f0f0);
+  }
+
+  &:focus {
+    outline: none;
+    background-color: var(--palette-neutral-6, #f0f0f0);
+  }
+}
+
+// ── Create Branch modal ────────────────────────────────────────────────────────
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+}
+
+.modal-dialog {
+  background-color: var(--background-color, #fff);
+  border: 1px solid var(--palette-neutral-20, #8a8886);
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--palette-neutral-10, #e1dfdd);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary-color, #323130);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary-color, #605e5c);
+  padding: 2px 6px;
+  border-radius: 2px;
+  line-height: 1;
+
+  &:hover {
+    background-color: var(--palette-neutral-6, #f0f0f0);
+    color: var(--text-primary-color, #323130);
+  }
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary-color, #605e5c);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--palette-neutral-10, #e1dfdd);
 }
 
 .branch-name-input {
@@ -143,7 +255,8 @@
   font-family: inherit;
   color: var(--text-primary-color, #323130);
   background-color: var(--background-color, #fff);
-  min-width: 180px;
+  width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;
@@ -183,22 +296,7 @@
   height: 100%;
 }
 
-.lock-button {
-  background-color: var(--palette-red, #a80000) !important;
-  color: #fff !important;
-  border-color: var(--palette-red, #a80000) !important;
-
-  &:hover:not([disabled]) {
-    background-color: #8b0000 !important;
-    border-color: #8b0000 !important;
-  }
-
-  &[disabled] {
-    opacity: 0.5;
-  }
-}
-
-// ── Status cell (lock + branch creation) ──────────────────────────────────────
+// ── Status cell (lock / unlock / branch creation) ─────────────────────────────
 
 .status-cell {
   display: flex;
@@ -206,7 +304,8 @@
   gap: 4px;
 }
 
-.lock-icon {
+.lock-icon,
+.unlock-icon {
   font-size: 16px;
   line-height: 1;
 }
@@ -258,6 +357,21 @@
   font-weight: 700;
   font-size: 14px;
   color: var(--communication-foreground, #0078d4);
+}
+
+.pr-count {
+  font-size: 14px;
+  color: var(--text-secondary-color, #605e5c);
+
+  &--active {
+    font-weight: 700;
+    color: #ca5010;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 .secondary-text {

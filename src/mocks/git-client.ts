@@ -47,6 +47,22 @@ const BRANCHES: Record<string, string[]> = {
   r9: ["main", "hotfix/jwt-patch"],
 };
 
+// Repos whose default branch starts locked in the mock environment.
+const LOCKED_BRANCHES = new Set(["r2:main", "r5:master"]);
+
+// Open PR counts per repo targeting the default branch.
+const OPEN_PRS: Record<string, number> = {
+  r1: 3,
+  r2: 1,
+  r3: 5,
+  r4: 0,
+  r5: 2,
+  r6: 0,
+  r7: 0,
+  r8: 0,
+  r9: 4,
+};
+
 // Commits per repo — repos r7 and r8 have none so they're filtered out.
 const COMMITS: Record<string, ReturnType<typeof commit>[]> = {
   r1: [
@@ -102,10 +118,20 @@ export const mockGitClient = {
   getRefs: async (repoId: string, _project: string, filter?: string) => {
     await delay(150);
     const branches = BRANCHES[repoId] ?? ["main"];
-    if (!filter) return branches.map((b) => ({ name: `refs/heads/${b}` }));
+    const makeRef = (b: string) => ({
+      name: `refs/heads/${b}`,
+      isLocked: LOCKED_BRANCHES.has(`${repoId}:${b}`),
+    });
+    if (!filter) return branches.map(makeRef);
     // filter is "heads/<branchname>" — return exact match only
     const name = filter.replace(/^heads\//, "");
-    return branches.includes(name) ? [{ name: `refs/heads/${name}` }] : [];
+    return branches.includes(name) ? [makeRef(name)] : [];
+  },
+
+  getPullRequests: async (repoId: string, _criteria: any, _project: string) => {
+    await delay(Math.random() * 200 + 100);
+    const count = OPEN_PRS[repoId] ?? 0;
+    return Array.from({ length: count }, (_, i) => ({ pullRequestId: i + 1 }));
   },
 
   updateRef: async (newRefInfo: any, _repoId: string, _filter: string, _project: string) => {
