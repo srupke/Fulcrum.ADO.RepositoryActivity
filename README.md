@@ -1,5 +1,12 @@
 # Fulcrum Repository Activity
 
+[![Security Audit](https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/actions/workflows/security-audit.yml/badge.svg)](https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/actions/workflows/security-audit.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Last Commit](https://img.shields.io/github/last-commit/srupke/Fulcrum.ADO.RepositoryActivity)](https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/srupke/Fulcrum.ADO.RepositoryActivity)](https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/srupke/Fulcrum.ADO.RepositoryActivity/pulls)
+
 An Azure DevOps extension that adds a **Repo Activity** hub to the Repos section. It shows every repository that has received commits to its default branch since a user-selected date, and provides bulk actions on the results.
 
 ---
